@@ -22,8 +22,8 @@ def extract_features(
 	features: List[np.ndarray] = []
     # process files in batches
 	for start in range(0, len(paths), batch_size):
-		batch_paths = paths[start : start + batch_size]
-		batch = load_batch(batch_paths, target_size=target_size)
+		batch_files = paths[start : start + batch_size]
+		batch = load_batch(batch_files, target_size=target_size)
 		batch_features = encoder_model.predict(batch) # assume teh model has this method
 		features.append(batch_features)
 
