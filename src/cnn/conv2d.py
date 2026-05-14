@@ -1,8 +1,6 @@
 from typing import Optional, Tuple
-
 import numpy as np
-
-from src.base.activations import Activation, Linear
+from src.base.activations import Activation, ReLU
 
 
 class Conv2D:
@@ -17,7 +15,7 @@ class Conv2D:
 		self.bias = np.asarray(bias)
 		self.strides = strides
 		self.padding = padding.lower()
-		self.activation = activation or Linear()
+		self.activation = activation or ReLU()
 
 	def _get_fmap_dims(self, h_in: int, w_in: int) -> Tuple[int, int, int, int]:
 		k_h, k_w = self.kernel.shape[:2]
