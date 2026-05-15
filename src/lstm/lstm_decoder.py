@@ -8,26 +8,6 @@ from lstm.lstm_cell import LSTMCell
 
 
 class LSTMDecoder:
-    """Image-captioning decoder — pre-inject method.
-
-    Architecture (from spec / Show and Tell, Vinyals et al. 2015):
-
-        x₋₁  = Dense_proj(CNN_feature)          <- image injected as first input
-        x_t   = Embedding(token_t),  t ≥ 0
-        sequence = [x₋₁, x₀, x₁, ..., x_{N-1}]
-        h₀ = 0,  c₀ = 0  (Keras default)
-
-        At each step:  H, C = LSTMCell(x_t, H, C)
-        output logits  = Dense_out(H)  ->  softmax  ->  prob over vocab
-
-    Usage
-    -----
-    1. Build and train the Keras model (see notebook).
-    2. Call load_weights(weights_dict) with the result of
-       utils.weight_loaders.load_weights(keras_model, spec).
-    3. Call forward() or generate_caption().
-    """
-
     def __init__(self) -> None:
         self.embedding  = Embedding()
         self.dense_proj = Dense(kernel=None, bias=None, activation=None)  # CNN -> embed_dim
@@ -35,24 +15,7 @@ class LSTMDecoder:
         self.dense_out  = Dense(kernel=None, bias=None, activation=Softmax())  # hidden -> vocab
 
     # Weight loading 
-
     def load_weights(self, weights_dict: Dict[str, dict]) -> None:
-        """Load all weights from a weight_loaders.load_weights() result dict.
-
-        Parameters
-        ----------
-        weights_dict : dict
-            Returned by utils.weight_loaders.load_weights(keras_model, spec).
-            Keys are Keras layer names; values contain type + weights.
-
-        Example spec passed to load_weights():
-        [
-            {"name": "embedding",        "type": "Embedding", "target": "embedding"},
-            {"name": "dense_projection", "type": "Dense",     "target": "dense_proj"},
-            {"name": "lstm",             "type": "LSTM",      "target": "lstm_cell"},
-            {"name": "dense_output",     "type": "Dense",     "target": "dense_out"},
-        ]
-        """
         for layer_name, entry in weights_dict.items():
             target = entry.get("target")
             layer_type = entry["type"]
@@ -74,27 +37,11 @@ class LSTMDecoder:
                 self.dense_out.bias    = np.asarray(w["bias"])
 
     # Forward pass (training / teacher-forcing eval) 
-
     def forward(
         self,
         cnn_features: np.ndarray,
         token_sequences: np.ndarray,
     ) -> np.ndarray:
-        """Full forward pass over a batch (teacher-forcing style).
-
-        Parameters
-        ----------
-        cnn_features : np.ndarray, shape (batch_size, cnn_feature_dim)
-            Pre-extracted CNN feature vectors.
-        token_sequences : np.ndarray, shape (batch_size, seq_len)
-            Integer token sequences, e.g. [<start>, w1, ..., w_{N-1}].
-
-        Returns
-        -------
-        all_logits : np.ndarray, shape (batch_size, seq_len + 1, vocab_size)
-            Softmax probability distributions at each timestep,
-            including the output at t=-1 (after injecting CNN feature).
-        """
         batch_size  = cnn_features.shape[0]
         num_hiddens = self.lstm_cell.W_hi.shape[0]
 
@@ -117,7 +64,6 @@ class LSTMDecoder:
         return np.stack(all_logits, axis=1)  # (batch, seq_len+1, vocab_size)
 
     # Greedy decoding (inference) 
-
     def generate_caption(
         self,
         cnn_feature: np.ndarray,
@@ -127,22 +73,6 @@ class LSTMDecoder:
         start_token: str = "<start>",
         end_token: str = "<end>",
     ) -> str:
-        """Greedy decoding — generate one caption for a single image.
-
-        Parameters
-        ----------
-        cnn_feature : np.ndarray, shape (cnn_feature_dim,)
-            Feature vector for ONE image (batch dim added internally).
-        word2idx : dict  — vocabulary mapping word -> index
-        idx2word : dict  — vocabulary mapping index -> word
-        max_len  : int   — maximum number of words to generate
-        start_token, end_token : str — special tokens used during training
-
-        Returns
-        -------
-        str
-            Generated caption (space-joined words, without special tokens).
-        """
         cnn_feature = cnn_feature[np.newaxis, :]   # (1, cnn_feature_dim)
         num_hiddens = self.lstm_cell.W_hi.shape[0]
 
