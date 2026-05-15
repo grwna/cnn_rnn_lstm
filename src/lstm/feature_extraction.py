@@ -24,63 +24,45 @@ Cara pakai:
 
 import argparse
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # force CPU
-
 from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-# from tensorflow.keras.applications import InceptionV3
-# from tensorflow.keras.applications.inception_v3 import preprocess_input
-from tensorflow.keras.applications import VGG16
-from tensorflow.keras.applications.vgg16 import preprocess_input
+from tensorflow.keras.applications import InceptionV3
+from tensorflow.keras.applications.inception_v3 import preprocess_input
 
 from src.utils.image_utils import load_batch
 
 
 # ── Konstanta ─────────────────────────────────────────────────────────────────
 
-# InceptionV3 butuh input 299x299
-# INCEPTION_INPUT_SIZE: Tuple[int, int] = (299, 299)
-# FEATURE_DIM = 2048   # dimensi output GlobalAveragePooling InceptionV3
-
-# VGG16 butuh input 224x224, output GlobalAveragePooling 512 dimensi 
-INCEPTION_INPUT_SIZE: Tuple[int, int] = (224, 224)
-FEATURE_DIM = 512
-
-BATCH_SIZE  = 4
+# InceptionV3 butuh input 299x299, bukan 224x224
+INCEPTION_INPUT_SIZE: Tuple[int, int] = (299, 299)
+FEATURE_DIM = 2048   # dimensi output GlobalAveragePooling InceptionV3
+BATCH_SIZE  = 32
 
 
 # ── Build encoder ─────────────────────────────────────────────────────────────
 
-# def build_encoder() -> keras.Model:
-#     """Load InceptionV3 pretrained ImageNet, tanpa top layer, semua layer di-freeze.
-
-#     Returns
-#     -------
-#     keras.Model
-#         Model dengan output shape (batch, 2048) — hasil GlobalAveragePooling.
-#     """
-#     base = InceptionV3(
-#         include_top=False,       # buang classification head
-#         weights="imagenet",      # load bobot ImageNet
-#         pooling="avg",           # GlobalAveragePooling otomatis → output (batch, 2048)
-#     )
-#     base.trainable = False       # freeze semua layer
-#     print(f"Encoder: InceptionV3 — output dim: {base.output_shape[-1]}")
-#     return base
-
 def build_encoder() -> keras.Model:
-    base = VGG16(
-        include_top=False,
-        weights="imagenet",
-        pooling="avg",
+    """Load InceptionV3 pretrained ImageNet, tanpa top layer, semua layer di-freeze.
+
+    Returns
+    -------
+    keras.Model
+        Model dengan output shape (batch, 2048) — hasil GlobalAveragePooling.
+    """
+    base = InceptionV3(
+        include_top=False,       # buang classification head
+        weights="imagenet",      # load bobot ImageNet
+        pooling="avg",           # GlobalAveragePooling otomatis → output (batch, 2048)
     )
-    base.trainable = False
-    print(f"Encoder: VGG16 — output dim: {base.output_shape[-1]}")
+    base.trainable = False       # freeze semua layer
+    print(f"Encoder: InceptionV3 — output dim: {base.output_shape[-1]}")
     return base
+
 
 # ── Preprocessing wrapper ─────────────────────────────────────────────────────
 
