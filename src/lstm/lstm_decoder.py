@@ -3,8 +3,8 @@ import numpy as np
 
 from src.base.activations import Softmax
 from src.base.dense import Dense
-from lstm.embedding import Embedding
-from lstm.lstm_cell import LSTMCell
+from src.lstm.embedding import Embedding
+from src.lstm.lstm_cell import LSTMCell
 
 
 class LSTMDecoder:

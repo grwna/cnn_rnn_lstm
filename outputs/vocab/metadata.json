@@ -1,0 +1,10 @@
+{
+  "vocab_size": 5202,
+  "max_seq_len": 37,
+  "num_images": 8091,
+  "min_freq": 2,
+  "pad_idx": 0,
+  "start_idx": 1,
+  "end_idx": 2,
+  "unk_idx": 3
+}
