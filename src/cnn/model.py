@@ -12,7 +12,7 @@ from src.utils.weight_loaders import load_weights
 
 LAYER_MAPPING = {
     "Conv2D": lambda w, m, a: Conv2D(w["kernel"], w["bias"], strides=m.get("strides", (1,1)), padding=m.get("padding", "valid"), activation=a),
-    "LocallyConnected2D": lambda w, m, a: LocallyConnected2D(w["kernel"], w["bias"], strides=m.get("strides", (1,1)), activation=a),
+    "LocallyConnected2D": lambda w, m, a: LocallyConnected2D(w["kernel"], w["bias"], strides=m.get("strides", (1,1)), padding=m.get("padding", "valid"), activation=a),
     "MaxPooling2D": lambda w, m, a: pool.MaxPooling2D(pool_size=m.get("pool_size", (2,2)), strides=m.get("strides", m.get("pool_size", (2,2)))),
     "AveragePooling2D": lambda w, m, a: pool.AveragePooling2D(pool_size=m.get("pool_size", (2,2)), strides=m.get("strides", m.get("pool_size", (2,2)))),
     "GlobalMaxPooling2D": lambda w, m, a: pool.GlobalMaxPooling2D(),

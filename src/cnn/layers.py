@@ -1,24 +1,20 @@
+from abc import ABC, abstractmethod
 from typing import Optional, Tuple
 import numpy as np
 from src.base.activations import Activation, ReLU
 
 
-class Conv2D:
+class CNNLayer(ABC):
 	def __init__( self,
-		kernel: np.ndarray,
-		bias: np.ndarray,
 		strides: Tuple[int, int] = (1, 1),
-		padding: str = "valid",     # valid: no padding, same: padding matches shape
+		padding: str = "valid",
 		activation: Optional[Activation] = None,
 	) -> None:
-		self.kernel = np.asarray(kernel)
-		self.bias = np.asarray(bias)
 		self.strides = strides
 		self.padding = padding.lower()
 		self.activation = activation or ReLU()
 
-	def _get_fmap_dims(self, h_in: int, w_in: int) -> Tuple[int, int, int, int]:
-		k_h, k_w = self.kernel.shape[:2]
+	def _get_fmap_dims(self, h_in: int, w_in: int, k_h: int, k_w: int) -> Tuple[int, int, int, int, int, int]:
 		s_h, s_w = self.strides
 
 		if self.padding == "valid":
@@ -32,7 +28,6 @@ class Conv2D:
 			return out_h, out_w, pad_top, pad_bottom, pad_left, pad_right
 
 		if self.padding == "same":
-            # calculate padding to match shape
 			out_h = int(np.ceil(h_in / s_h))
 			out_w = int(np.ceil(w_in / s_w))
 
@@ -48,7 +43,6 @@ class Conv2D:
 
 		raise ValueError("Paddings can only be:\n - valid\n - same")
 
-
 	def _pad(self, x: np.ndarray, pads: Tuple[int, int, int, int]) -> np.ndarray:
 		pad_top, pad_bottom, pad_left, pad_right = pads
 		if pad_top == pad_bottom == pad_left == pad_right == 0:
@@ -59,6 +53,22 @@ class Conv2D:
 			((0, 0), (pad_top, pad_bottom), (pad_left, pad_right), (0, 0)),
 		)
 
+	@abstractmethod
+	def forward(self, x: np.ndarray) -> np.ndarray:
+		pass
+
+
+class Conv2D(CNNLayer):
+	def __init__( self,
+		kernel: np.ndarray,
+		bias: np.ndarray,
+		strides: Tuple[int, int] = (1, 1),
+		padding: str = "valid",
+		activation: Optional[Activation] = None,
+	) -> None:
+		super().__init__(strides, padding, activation)
+		self.kernel = np.asarray(kernel)
+		self.bias = np.asarray(bias)
 
 	def forward(self, x: np.ndarray) -> np.ndarray:
 		if x.ndim != 4:
@@ -74,13 +84,10 @@ class Conv2D:
 		if self.bias.shape != (c_out,):
 			raise ValueError("Bias must have shape (C_out,)")
 
-        # get and apply input properties
 		n, h_in, w_in, _ = x.shape
-		out_h, out_w, pad_top, pad_bottom, pad_left, pad_right = self._get_fmap_dims(h_in, w_in)
+		out_h, out_w, pad_top, pad_bottom, pad_left, pad_right = self._get_fmap_dims(h_in, w_in, k_h, k_w)
 		x_padded = self._pad(x, (pad_top, pad_bottom, pad_left, pad_right))
 		s_h, s_w = self.strides
-
-		output = np.zeros((n, out_h, out_w, c_out), dtype=x_padded.dtype) # init
 
 		windows = np.lib.stride_tricks.sliding_window_view(
 			x_padded,
@@ -97,17 +104,17 @@ class Conv2D:
 		return self.activation(output)
 
 
-class LocallyConnected2D:
+class LocallyConnected2D(CNNLayer):
 	def __init__( self,
 		kernel: np.ndarray,
 		bias: np.ndarray,
 		strides: Tuple[int, int] = (1, 1),
+		padding: str = "valid",
 		activation: Optional[Activation] = None,
 	) -> None:
+		super().__init__(strides, padding, activation)
 		self.kernel = np.asarray(kernel)
 		self.bias = np.asarray(bias)
-		self.strides = strides
-		self.activation = activation or ReLU()
 
 	def _get_kernel_size(self, c_in: int) -> Tuple[int, int]:
 		if self.kernel.ndim != 3:
@@ -129,28 +136,25 @@ class LocallyConnected2D:
 		if x.ndim != 4:
 			raise ValueError("Input must have shape (N, H, W, C_in)")
 
-        # extract properties
 		x = np.asarray(x)
 		n, h_in, w_in, c_in = x.shape
 		k_h, k_w = self._get_kernel_size(c_in)
 		s_h, s_w = self.strides
 
-		out_h = (h_in - k_h) // s_h + 1
-		out_w = (w_in - k_w) // s_w + 1
+		out_h, out_w, pad_top, pad_bottom, pad_left, pad_right = self._get_fmap_dims(h_in, w_in, k_h, k_w)
+		x_padded = self._pad(x, (pad_top, pad_bottom, pad_left, pad_right))
+		
 		out_shape = out_h * out_w
 
-        # check validity of bias and kernel
 		if self.kernel.shape[0] != out_shape:
-			raise ValueError("Kernel output positions must match output size")
-		if self.bias.shape != (out_shape, self.kernel.shape[2]):
-			raise ValueError("Bias must have shape (H_out*W_out, C_out)")
-		if h_in < k_h or w_in < k_w:
-			raise ValueError("Input dims must be >= kernel size")
-
+			raise ValueError(f"Kernel output positions ({self.kernel.shape[0]}) must match output size ({out_shape})")
+		
 		c_out = self.kernel.shape[2]
+		if self.bias.shape != (out_shape, c_out):
+			raise ValueError(f"Bias must have shape ({out_shape}, {c_out})")
 
 		windows = np.lib.stride_tricks.sliding_window_view(
-			x,
+			x_padded,
 			window_shape=(k_h, k_w),
 			axis=(1, 2),
 		)
@@ -158,11 +162,8 @@ class LocallyConnected2D:
 		windows = windows[:, :out_h, :out_w, :, :, :]
 		patches = np.moveaxis(windows, 3, -1)
 
-
-		# alleviate OOM issues
 		kernel_reshaped = self.kernel.reshape(out_h, out_w, k_h, k_w, c_in, c_out)
 
-		# Perform einsum directly to prevent OOM
 		outputs = np.einsum("nhwijc,hwijcf->nhwf", patches, kernel_reshaped, optimize=True)
 		outputs = outputs + self.bias.reshape(1, out_h, out_w, c_out)
 
