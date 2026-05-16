@@ -5,8 +5,7 @@ import numpy as np
 import src.base.activations as act
 from src.base.dense import Dense
 from src.base.flatten import Flatten
-from src.cnn.conv2d import Conv2D
-from src.cnn.locally_connected2d import LocallyConnected2D
+from src.cnn.layers import Conv2D, LocallyConnected2D
 import src.cnn.pooling as pool
 from src.utils.weight_loaders import load_weights
 
