@@ -9,7 +9,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from src.rnn.scripts.extract_features import build_encoder
+from scripts.extract_flickr8k_features import build_encoder
 from src.rnn.embedding import Embedding
 from src.rnn.rnn_cell import SimpleRNNCell
 from src.base.dense import Dense
@@ -24,7 +24,7 @@ class RNNScratch:
         
         keras_decoder = keras.models.load_model(keras_model_path)
         
-        proj_layer = keras_decoder.get_layer("feature_projection")
+        proj_layer = keras_decoder.get_layer("dense_projection")
         self.dense_proj = Dense(*proj_layer.get_weights())
         
         emb_layer = keras_decoder.get_layer("embedding")
@@ -100,12 +100,12 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--image", type=str, required=True, help="Path ke gambar")
-    parser.add_argument("--model", type=str, default=os.path.join(PROJECT_ROOT, "saved_models", "rnn", "rnn_L3_H512", "rnn_L3_H512.keras"))
-    parser.add_argument("--metadata", type=str, default=os.path.join(PROJECT_ROOT, "data", "metadata.json"))
-    parser.add_argument("--vocab", type=str, default=os.path.join(PROJECT_ROOT, "data", "vocab.json"))
+    parser.add_argument("--model", type=str, default=os.path.join(PROJECT_ROOT, "models", "rnn", "rnn_L3_H512", "rnn_L3_H512.keras"))
+    parser.add_argument("--metadata", type=str, default=os.path.join(PROJECT_ROOT, "outputs", "vocab", "metadata.json"))
+    parser.add_argument("--vocab", type=str, default=os.path.join(PROJECT_ROOT,"outputs", "vocab", "vocab.json"))
     args = parser.parse_args()
 
-    # Load vocab untuk decode
+    # load vocab untuk decode
     with open(args.vocab, 'r') as f:
         word_to_idx = json.load(f)
     idx_to_word = {str(idx): word for word, idx in word_to_idx.items()}
