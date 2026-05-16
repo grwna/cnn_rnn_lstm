@@ -9,6 +9,9 @@ _WEIGHT_KEYS: Mapping[str, List[str]] = {
     "Embedding":         ["embeddings"],
     "LSTM":              ["kernel", "recurrent_kernel", "bias"],
     "SimpleRNN":         ["kernel", "recurrent_kernel", "bias"],
+    "MaxPooling2D": [],
+    "AveragePooling2D" : [],
+    "Flatten": [],
 }
 
 
