@@ -1,13 +1,3 @@
-"""
-generate_splits.py
-------------------
-Buat file split Flickr8k (train/val/test) dari daftar gambar yang ada.
-Jalankan SEKALI sebelum feature extraction.
-
-Cara pakai:
-    python generate_splits.py --images_dir data/Images
-"""
-
 import argparse
 import os
 import random
@@ -17,9 +7,7 @@ VAL_SIZE   = 1000
 TEST_SIZE  = 1000
 SEED       = 42
 
-
 def main(images_dir: str, output_dir: str) -> None:
-    # Kumpulkan semua file .jpg
     all_images = sorted([
         f for f in os.listdir(images_dir)
         if f.lower().endswith(".jpg")
@@ -34,7 +22,6 @@ def main(images_dir: str, output_dir: str) -> None:
             f"tapi hanya ada {total}."
         )
 
-    # Shuffle dengan seed tetap agar reproducible
     random.seed(SEED)
     random.shuffle(all_images)
 

@@ -5,7 +5,7 @@ from typing import List, Tuple
 
 import numpy as np
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
@@ -16,7 +16,7 @@ from tensorflow import keras
 from tensorflow.keras.applications.inception_v3 import preprocess_input as inception_preprocess
 from tensorflow.keras.applications.vgg16 import preprocess_input as vgg16_preprocess
 
-from src.utils.feature_extractor import extract_features
+from .feature_extractor import extract_features
 
 
 # ---------- Konfigurasi encoder ----------
