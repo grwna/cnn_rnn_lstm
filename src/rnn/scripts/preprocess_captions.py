@@ -17,7 +17,7 @@ from src.utils.caption_preprocessing import (
 def main():
     parser = argparse.ArgumentParser(description="Preprocess Flickr8k captions")
     parser.add_argument("--captions_path", type=str, default=os.path.join(PROJECT_ROOT, "Flickr8k", "captions.txt"))
-    parser.add_argument("--output_dir", type=str, default=os.path.join(PROJECT_ROOT, "data"))
+    parser.add_argument("--output_dir", type=str, default=os.path.join(PROJECT_ROOT, "outputs", "vocab"))
     parser.add_argument("--min_freq", type=int, default=2)
     parser.add_argument("--max_len", type=int, default=None)
     args = parser.parse_args()

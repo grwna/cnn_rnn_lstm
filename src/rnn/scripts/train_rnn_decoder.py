@@ -15,44 +15,60 @@ from tensorflow import keras
 from tensorflow.keras import layers
 
 def load_training_data():
-    data_dir = os.path.join(PROJECT_ROOT, "data")
-    feat_dir = os.path.join(PROJECT_ROOT, "features")
+    vocab_dir = os.path.join(PROJECT_ROOT, "outputs", "vocab")
+    feat_dir = os.path.join(PROJECT_ROOT, "outputs", "features")
 
-    with open(os.path.join(data_dir, "metadata.json")) as f:
+    with open(os.path.join(vocab_dir, "metadata.json")) as f:
         meta = json.load(f)
 
-    padded = np.load(os.path.join(data_dir, "padded_captions.npy"))
-    img_names = np.load(os.path.join(data_dir, "caption_image_names.npy"), allow_pickle=True)
+    padded = np.load(os.path.join(vocab_dir, "padded_captions.npy"))
+    img_names = np.load(os.path.join(vocab_dir, "caption_image_names.npy"), allow_pickle=True)
 
-    features = np.load(os.path.join(feat_dir, "inceptionv3_features.npy"))
-    mapping = np.load(os.path.join(feat_dir, "inceptionv3_image_mapping.npy"), allow_pickle=True).item()
+    # load split features and combine into a single mapping
+    mapping = {}
+    for split in ["train", "val", "test"]:
+        feats = np.load(os.path.join(feat_dir, f"inceptionv3_{split}_features.npy"))
+        ids = np.load(os.path.join(feat_dir, f"inceptionv3_{split}_image_ids.npy"), allow_pickle=True)
+        for img_id, feat in zip(ids, feats):
+            mapping[img_id] = feat
+
+    valid_indices = [i for i, name in enumerate(img_names) if name in mapping]
+    img_names = img_names[valid_indices]
+    padded = padded[valid_indices]
 
     # sejajarkan vektor fitur dengan matriks caption
-    feat_indices = np.array([mapping[name] for name in img_names])
-    caption_features = features[feat_indices]
+    caption_features = np.array([mapping[name] for name in img_names])
 
     # teacher forcing: geser input dan target 1 timestep
     decoder_input = padded[:, :-1] 
     target = padded[:, 1:] 
     mask = (target != meta["pad_idx"]).astype(np.float32)
 
-    return caption_features, decoder_input, target, mask, meta
+    return caption_features, decoder_input, target, mask, meta, img_names
 
-def train_val_split(n, val_ratio=0.1, seed=42):
-    rng = np.random.RandomState(seed)
-    indices = rng.permutation(n)
-    val_size = int(n * val_ratio)
-    return indices[val_size:], indices[:val_size]
+def get_split_indices(img_names):
+    train_txt = os.path.join(PROJECT_ROOT, "data", "Flickr_8k.trainImages.txt")
+    val_txt = os.path.join(PROJECT_ROOT, "data", "Flickr_8k.devImages.txt")
+    
+    with open(train_txt, 'r') as f:
+        train_imgs = set(line.strip() for line in f if line.strip())
+    with open(val_txt, 'r') as f:
+        val_imgs = set(line.strip() for line in f if line.strip())
+        
+    train_idx = [i for i, name in enumerate(img_names) if name in train_imgs]
+    val_idx = [i for i, name in enumerate(img_names) if name in val_imgs]
+    
+    return train_idx, val_idx
 
 def build_decoder(vocab_size, embed_dim, feature_dim, seq_len, rnn_units, num_layers):
     feat_input = keras.Input(shape=(feature_dim,))
     cap_input = keras.Input(shape=(seq_len,), dtype="int32")
 
     # proyeksi fitur CNN menjadi input x_{-1}
-    projected = layers.Dense(embed_dim)(feat_input)
+    projected = layers.Dense(embed_dim, name="dense_projection")(feat_input)
     projected = layers.Reshape((1, embed_dim))(projected)
 
-    embedded = layers.Embedding(vocab_size, embed_dim)(cap_input)
+    embedded = layers.Embedding(vocab_size, embed_dim, name="embedding")(cap_input)
 
     # gabungkan
     x = layers.Concatenate(axis=1)([projected, embedded])
@@ -60,7 +76,7 @@ def build_decoder(vocab_size, embed_dim, feature_dim, seq_len, rnn_units, num_la
     for _ in range(num_layers):
         x = layers.SimpleRNN(rnn_units, return_sequences=True)(x)
 
-    output = layers.Dense(vocab_size, activation="softmax")(x)
+    output = layers.Dense(vocab_size, activation="softmax", name="output")(x)
 
     return keras.Model(inputs=[feat_input, cap_input], outputs=output)
 
@@ -134,11 +150,11 @@ def main():
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--layers", type=int, default=None)
     parser.add_argument("--units", type=int, default=None)
-    parser.add_argument("--output_dir", type=str, default=os.path.join(PROJECT_ROOT, "saved_models", "rnn"))
+    parser.add_argument("--output_dir", type=str, default=os.path.join(PROJECT_ROOT, "models", "rnn"))
     args = parser.parse_args()
 
-    caption_features, decoder_input, target, mask, meta = load_training_data()
-    train_idx, val_idx = train_val_split(len(caption_features))
+    caption_features, decoder_input, target, mask, meta, img_names = load_training_data()
+    train_idx, val_idx = get_split_indices(img_names)
 
     if args.layers is not None and args.units is not None:
         configs = [{"layers": args.layers, "units": args.units}]
@@ -153,6 +169,7 @@ def main():
     all_results = []
 
     for config in configs:
+        print("\n\nTraining rnn with layers: ", config["layers"], " units: ", config["units"])
         result = train_single_config(config, caption_features, decoder_input, target, mask, meta, train_idx, val_idx, args.epochs, args.batch_size, args.output_dir)
         all_results.append(result)
 
