@@ -37,29 +37,24 @@ class LSTMKeras:
         current_token  = self.meta["start_idx"]
         predicted_tokens = []
 
-        cap_input_len = self.meta["max_seq_len"] - 1
-        cap_input = np.full((1, cap_input_len), self.meta["pad_idx"], dtype=np.int32)
+        cap_input = np.full((1, self.meta["max_seq_len"]), self.meta["pad_idx"], dtype=np.int32)
 
         for t in range(max_len):
-            if t < cap_input_len:
+            if t < self.meta["max_seq_len"]:
                 cap_input[0, t] = current_token
 
             # Output shape: (1, max_seq_len + 1, vocab_size)
             logits = self.decoder.predict([cnn_feature, cap_input], verbose=0)
 
-            # Timestep 0 = output dari CNN feature (t=-1)
-            # Timestep t+1 = output untuk token ke-t
-            step_logits = logits[0, t + 1, :]
-            next_token  = int(np.argmax(step_logits))
+            # Ambil probabilitas di timestep t
+            step_logits = logits[0, t, :]
+            next_token = int(np.argmax(step_logits))
 
             if next_token == self.meta["end_idx"]:
                 break
 
             predicted_tokens.append(next_token)
             current_token = next_token
-
-            if t == self.meta["max_seq_len"] - 1:
-                break
 
         caption = " ".join([idx_to_word.get(str(idx), "<unk>") for idx in predicted_tokens])
         return caption

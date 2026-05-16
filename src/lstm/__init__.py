@@ -1,4 +1,3 @@
-from .embedding import Embedding
 from .lstm_cell import LSTMCell
 from .lstm_decoder import LSTMDecoder
 
