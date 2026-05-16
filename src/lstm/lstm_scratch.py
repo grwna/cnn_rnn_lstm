@@ -10,12 +10,11 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from scripts.extract_flickr8k_features import build_encoder
+from src.utils.extract_flickr8k_features import build_encoder
 from src.lstm.embedding import Embedding
 from src.lstm.lstm_cell import LSTMCell
 from src.base.dense import Dense
 from src.base.activations import Softmax
-
 
 class LSTMScratch:
     def __init__(

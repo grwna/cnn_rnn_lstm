@@ -9,7 +9,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from scripts.extract_flickr8k_features import build_encoder
+from src.utils.extract_flickr8k_features import build_encoder
 from src.rnn.embedding import Embedding
 from src.rnn.rnn_cell import SimpleRNNCell
 from src.base.dense import Dense
