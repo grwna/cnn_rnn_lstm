@@ -226,4 +226,5 @@ __marimo__/
 *:Zone.Identifier
 
 models/lstm/*.h5
-data/Images
+/data/Images
+*.pdf
