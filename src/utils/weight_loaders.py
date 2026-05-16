@@ -70,6 +70,11 @@ def load_weights(keras_model, spec: Iterable[Dict[str, Any]]) -> Dict[str, Dict[
         layer_type  = entry["type"]
         weight_keys = _WEIGHT_KEYS.get(layer_type)
 
+        try:
+            layer = keras_model.get_layer(layer_name)
+        except Exception as exc:
+            raise ValueError(f"Layer '{layer_name}' not found in model.") from exc
+
         if weight_keys is None:
             if len(layer.weights) == 0:
                 weights = {}
@@ -78,26 +83,24 @@ def load_weights(keras_model, spec: Iterable[Dict[str, Any]]) -> Dict[str, Dict[
                     f"Unknown layer type: '{layer_type}'. "
                     f"Supported types: {list(_WEIGHT_KEYS.keys())}"
                 )
+        elif weight_keys == []:
+            weights = {}
+        else:
+            if not layer.weights:
+                raise ValueError(f"Layer '{layer_name}' has no trainable weights.")
 
-        try:
-            layer = keras_model.get_layer(layer_name)
-        except Exception as exc:
-            raise ValueError(f"Layer '{layer_name}' not found in model.") from exc
+            if len(layer.weights) != len(weight_keys):
+                raise ValueError(
+                    f"Layer '{layer_name}' ({layer_type}): "
+                    f"expected {len(weight_keys)} weight tensors {weight_keys}, "
+                    f"but got {len(layer.weights)}."
+                )
 
-        if not layer.weights:
-            raise ValueError(f"Layer '{layer_name}' has no trainable weights.")
+            weights = {
+                key: np.asarray(w.numpy())
+                for key, w in zip(weight_keys, layer.weights)
+            }
 
-        if len(layer.weights) != len(weight_keys):
-            raise ValueError(
-                f"Layer '{layer_name}' ({layer_type}): "
-                f"expected {len(weight_keys)} weight tensors {weight_keys}, "
-                f"but got {len(layer.weights)}."
-            )
-
-        weights = {
-            key: np.asarray(w.numpy())
-            for key, w in zip(weight_keys, layer.weights)
-        }
 
         item: Dict[str, Any] = {
             "type":     layer_type,
