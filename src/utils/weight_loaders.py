@@ -68,10 +68,13 @@ def load_weights(keras_model, spec: Iterable[Dict[str, Any]]) -> Dict[str, Dict[
         weight_keys = _WEIGHT_KEYS.get(layer_type)
 
         if weight_keys is None:
-            raise ValueError(
-                f"Unknown layer type: '{layer_type}'. "
-                f"Supported types: {list(_WEIGHT_KEYS.keys())}"
-            )
+            if len(layer.weights) == 0:
+                weights = {}
+            else:
+                raise ValueError(
+                    f"Unknown layer type: '{layer_type}'. "
+                    f"Supported types: {list(_WEIGHT_KEYS.keys())}"
+                )
 
         try:
             layer = keras_model.get_layer(layer_name)

@@ -72,6 +72,18 @@ class CNNScratch:
 		return np.concatenate(outputs, axis=0) if outputs else np.empty((0,))
 
 
+	def count_params(self) -> int:
+		total = 0
+		for layer in self.layers:
+			if isinstance(layer, Conv2D):
+				total += int(np.prod(layer.kernel.shape) + np.prod(layer.bias.shape))
+			elif isinstance(layer, LocallyConnected2D):
+				total += int(np.prod(layer.kernel.shape) + np.prod(layer.bias.shape))
+			elif isinstance(layer, Dense):
+				total += int(np.prod(layer.weights.shape) + np.prod(layer.bias.shape))
+		return total
+
+
 	def init_activation(self, name: Optional[str]) -> act.Activation:
 		if name is None:
 			return act.ReLU()
