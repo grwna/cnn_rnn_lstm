@@ -82,17 +82,16 @@ class Conv2D:
 
 		output = np.zeros((n, out_h, out_w, c_out), dtype=x_padded.dtype) # init
 
-		for i in range(out_h):
-			h_start = i * s_h
-			h_end = h_start + k_h
+		windows = np.lib.stride_tricks.sliding_window_view(
+			x_padded,
+			window_shape=(k_h, k_w),
+			axis=(1, 2),
+		)
+		windows = windows[:, ::s_h, ::s_w, :, :, :]
+		windows = windows[:, :out_h, :out_w, :, :, :]
+		patches = np.moveaxis(windows, 3, -1)
 
-			for j in range(out_w):
-				w_start = j * s_w
-				w_end = w_start + k_w
-				patch = x_padded[:, h_start:h_end, w_start:w_end, :]
-
-				output[:, i, j, :] = (
-					np.einsum("nhwc,hwck->nk", patch, self.kernel) + self.bias
-				)
+		output = np.einsum("nhwklc,klcf->nhwf", patches, self.kernel, optimize=True)
+		output = output + self.bias
 
 		return self.activation(output)

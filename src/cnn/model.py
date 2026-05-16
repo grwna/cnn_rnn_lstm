@@ -58,19 +58,24 @@ class CNNScratch:
 		return out
 
 
-	def predict(self, x: np.ndarray, batch_size: int = 32) -> np.ndarray:
+	def predict(self, x: np.ndarray, batch_size: int = 32, verbose: bool = False) -> np.ndarray:
 		if x.ndim < 2:
 			raise ValueError("Input must include batch dimension")
 		if batch_size <= 0:
 			raise ValueError("batch_size must be positive")
 
 		outputs: List[np.ndarray] = []
-		for start in range(0, x.shape[0], batch_size):
-			batch = x[start:start + batch_size]
+		total_samples = x.shape[0]
+		total_batches = (total_samples + batch_size - 1) // batch_size
+
+		for i, start_idx in enumerate(range(0, total_samples, batch_size)):
+			batch = x[start_idx:start_idx + batch_size]
 			outputs.append(self.forward(batch))
+			
+			if verbose:
+				print(f"Batch {i + 1}/{total_batches} processed", end='\r' if i + 1 < total_batches else '\n')
 
 		return np.concatenate(outputs, axis=0) if outputs else np.empty((0,))
-
 
 	def count_params(self) -> int:
 		total = 0

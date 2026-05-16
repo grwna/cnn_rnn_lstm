@@ -54,16 +54,22 @@ class LocallyConnected2D:
 			raise ValueError("Input dims must be >= kernel size")
 
 		c_out = self.kernel.shape[2]
-		output = np.zeros((n, out_h, out_w, c_out), dtype=x.dtype)
 
-		for i in range(out_h):
-			h_start = i * s_h
-			h_end = h_start + k_h
-			for j in range(out_w):
-				w_start = j * s_w
-				w_end = w_start + k_w
-				idx = i * out_w + j
-				patch = x[:, h_start:h_end, w_start:w_end, :].reshape(n, -1)
-				output[:, i, j, :] = patch @ self.kernel[idx] + self.bias[idx]
+		windows = np.lib.stride_tricks.sliding_window_view(
+			x,
+			window_shape=(k_h, k_w),
+			axis=(1, 2),
+		)
+		windows = windows[:, ::s_h, ::s_w, :, :, :]
+		windows = windows[:, :out_h, :out_w, :, :, :]
+		patches = np.moveaxis(windows, 3, -1)
 
-		return self.activation(output)
+
+		# alleviate OOM issues
+		kernel_reshaped = self.kernel.reshape(out_h, out_w, k_h, k_w, c_in, c_out)
+
+		# Perform einsum directly to prevent OOM
+		outputs = np.einsum("nhwijc,hwijcf->nhwf", patches, kernel_reshaped, optimize=True)
+		outputs = outputs + self.bias.reshape(1, out_h, out_w, c_out)
+
+		return self.activation(outputs)
