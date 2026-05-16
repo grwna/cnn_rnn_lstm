@@ -10,7 +10,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.utils.extract_flickr8k_features import build_encoder
-from src.rnn.embedding import Embedding
+from src.base.embedding import Embedding
 from src.rnn.rnn_cell import SimpleRNNCell
 from src.base.dense import Dense
 from src.base.activations import Softmax

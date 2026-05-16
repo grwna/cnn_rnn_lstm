@@ -1,7 +1,7 @@
 from typing import Optional
 
 import numpy as np
-from base.activations import Activation, Linear
+from src.base.activations import Activation, Linear
 
 class Dense:
     def __init__( self,

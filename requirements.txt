@@ -44,3 +44,5 @@ tqdm==4.67.3
 typing_extensions==4.15.0
 urllib3==2.7.0
 wrapt==2.1.2
+pandas==3.0.3 
+seaborn==0.13.2

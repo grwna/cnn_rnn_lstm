@@ -11,7 +11,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.utils.extract_flickr8k_features import build_encoder
-from src.lstm.embedding import Embedding
+from src.base.embedding import Embedding
 from src.lstm.lstm_cell import LSTMCell
 from src.base.dense import Dense
 from src.base.activations import Softmax
@@ -33,7 +33,7 @@ class LSTMScratch:
 
         # 2. Load bobot dari Keras decoder 
         print(f"Memuat bobot Keras dari: {keras_model_path}")
-        keras_decoder = keras.models.load_model(keras_model_path)
+        keras_decoder = keras.models.load_model(keras_model_path, safe_mode=False)
 
         # Dense projection (CNN feature -> embed_dim)
         proj_layer = keras_decoder.get_layer("dense_projection")
